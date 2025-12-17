@@ -1,0 +1,46 @@
+// Compliance-focused SAP data validation middleware
+function validateSAPNumericField(fieldName, rawValue, options = { allowFloat: true }) {
+  // Step 1: Clean input (remove non-numeric characters except . and -)
+  const cleaned = rawValue.replace(/[^\d.-]/g, "");
+
+  // Step 2: Choose parsing strategy
+  let parsedValue;
+  if (options.allowFloat) {
+    parsedValue = Number(cleaned); // strict conversion
+  } else {
+    parsedValue = parseInt(cleaned, 10); // integer-only
+  }
+
+  // Step 3: Compliance checks
+  if (isNaN(parsedValue)) {
+    throw new Error(`Invalid numeric input for ${fieldName}: "${rawValue}"`);
+  }
+
+  // Example compliance rules (SOX/OSHA/HR)
+  if (fieldName === "salary") {
+    if (parsedValue < 15000) {
+      throw new Error(`Compliance violation: Salary below minimum threshold (${parsedValue})`);
+    }
+  }
+
+  if (fieldName === "inventoryCount") {
+    if (!Number.isInteger(parsedValue)) {
+      throw new Error(`Compliance violation: Inventory count must be an integer (${parsedValue})`);
+    }
+  }
+
+  // Step 4: Return validated value
+  return parsedValue;
+}
+
+// Example usage in SAP pipeline
+try {
+  const salary = validateSAPNumericField("salary", "45000.75 USD", { allowFloat: true });
+  const inventory = validateSAPNumericField("inventoryCount", "120 units", { allowFloat: false });
+
+  console.log("Validated salary:", salary);       // 45000.75
+  console.log("Validated inventory:", inventory); // 120
+} catch (err) {
+  console.error("Validation error:", err.message);
+  // Log to compliance/audit trail here
+}
